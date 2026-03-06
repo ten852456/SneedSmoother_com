@@ -1,4 +1,4 @@
-﻿namespace PoeFixer;
+namespace PoeFixer;
 
 public class DeliriumPatch : IPatch
 {
@@ -15,13 +15,9 @@ public class DeliriumPatch : IPatch
     {
         if (string.IsNullOrEmpty(text)) return null;
 
-        if (text.Contains("Metadata/FmtParent") && !text.Contains("AnimatedRender"))
+        if (text.Contains("Metadata/FmtParent"))
         {
             text = "version 2\nextends \"Metadata/FmtParent\"";
-        }
-        else if (text.Contains("Metadata/FmtParent") && text.Contains("AnimatedRender"))
-        {
-            text = "version 2\nextends \"Metadata/FmtParent\"\n\nAnimatedRender\n{\n\tcannot_be_disabled = true\n}";
         }
         else if (text.Contains("default_animation = \"loop\""))
         {
@@ -32,18 +28,12 @@ public class DeliriumPatch : IPatch
         }
         else if (text.Contains("BoneGroups"))
         {
-            text = @"version 2
-extends ""Metadata/Parent""
-
-ClientAnimationController
-{
-	skeleton = ""Art/Models/Effects/enviro_effects/weather_attachments/generic_rig/weather_rig.ast""
-}
-
-BoneGroups
-{
-	bone_group = ""box false aux_box1 aux_box2 aux_box3 ""
-}";
+            // Strip default_animation so the particle loop doesn't trigger,
+            // and output a minimal file with empty client block.
+            string[] separator = [Environment.NewLine];
+            string[] lines = text.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+            IEnumerable<string> filteredLines = lines.Where(line => !line.Contains("default_animation"));
+            text = string.Join(Environment.NewLine, filteredLines);
         }
 
         return text;
