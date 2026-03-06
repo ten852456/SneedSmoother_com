@@ -1,4 +1,4 @@
-﻿namespace PoeFixer;
+namespace PoeFixer;
 
 public class CorpsePatch : IPatch
 {
@@ -12,10 +12,10 @@ public class CorpsePatch : IPatch
 
     public string? PatchFile(string text)
     {
-        text = text.Replace("Life\r\n{\r\n}", "Life\r\n{\r\n\ton_spawned_dead = \"RemoveEffects(); DisableRendering();\"\r\n\ton_death = \"RemoveEffects(); DisableRendering();\"\r\n}");
+        text = text.Replace("Life\r\n{\r\n}", "Life\r\n{\r\n\ton_spawned_dead = {RemoveEffects(); DisableRendering();}\r\n\ton_death = {RemoveEffects(); DisableRendering();}\r\n}");
 
         string originalText = "slow_animations_go_to_idle = true\r\n}";
-        string toReplace = "slow_animations_go_to_idle = true\r\n\ton_start_Revive = \"RemoveEffects(); EnableRendering();\"\r\n}";
+        string toReplace = "slow_animations_go_to_idle = true\r\n\ton_start_Revive = {RemoveEffects(); EnableRendering();}\r\n}";
 
         return text.Replace(originalText, toReplace);
     }

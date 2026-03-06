@@ -1,4 +1,4 @@
-﻿namespace PoeFixer;
+namespace PoeFixer;
 
 public class ZoomPatch : IPatch
 {
@@ -64,7 +64,7 @@ public class ZoomPatch : IPatch
             if (index == -1) return text;
 
             string zoomLevelString = zoomLevel.ToString().Replace(',', '.');
-            lines.Insert(index + 1, $"\ton_initial_position_set = \"CreateCameraZoomNode(1000000, 1000000, {zoomLevelString});\"");
+            lines.Insert(index + 1, $"\ton_initial_position_set = {{CreateCameraZoomNode(1000000, 1000000, {zoomLevelString});}}");
 
             return string.Join("\r\n", lines);
         }
