@@ -189,7 +189,13 @@ public class PatchManager
                 string aocPath = Path.ChangeExtension(modifiedPath, ".aoc");
                 if (!File.Exists(aocPath))
                 {
-                    File.WriteAllBytes(aocPath, []);
+                    // Only create the .aoc companion if the entry actually exists in the GGPK.
+                    // If it doesn't exist, LibBundle3.Replace throws FileNotFoundException.
+                    string ggpkPath = aocPath.Replace(ModifiedCachePath, "").Replace('\\', '/');
+                    if (index.TryFindNode(ggpkPath, out _))
+                    {
+                        File.WriteAllBytes(aocPath, []);
+                    }
                 }
             }
         }
