@@ -189,7 +189,7 @@ public class PatchManager
                 string aocPath = Path.ChangeExtension(modifiedPath, ".aoc");
                 if (!File.Exists(aocPath))
                 {
-                    File.WriteAllText(aocPath, string.Empty, Encoding.Unicode);
+                    File.WriteAllBytes(aocPath, []);
                 }
             }
         }

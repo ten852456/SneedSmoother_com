@@ -1,4 +1,4 @@
-﻿using LibBundledGGPK3;
+using LibBundledGGPK3;
 using Microsoft.Win32;
 using System.Diagnostics;
 using System.Windows;
@@ -103,25 +103,36 @@ public partial class MainWindow : Window
         Stopwatch sw = new();
         sw.Start();
 
-        if (GGPKPath.EndsWith(".ggpk"))
+        try
         {
-            BundledGGPK ggpk = new(GGPKPath);
-            PatchManager manager = new(ggpk.Index, this);
-            int count = manager.Patch();
-            ggpk.Dispose();
-            EmitToConsole($"{count} assets patched.");
-        }
+            if (GGPKPath.EndsWith(".ggpk"))
+            {
+                BundledGGPK ggpk = new(GGPKPath);
+                PatchManager manager = new(ggpk.Index, this);
+                int count = manager.Patch();
+                ggpk.Dispose();
+                EmitToConsole($"{count} assets patched.");
+            }
 
-        if (GGPKPath.EndsWith(".bin"))
+            if (GGPKPath.EndsWith(".bin"))
+            {
+                LibBundle3.Index index = new(GGPKPath);
+                PatchManager manager = new(index, this);
+                int count = manager.Patch();
+                index.Dispose();
+                EmitToConsole($"{count} assets patched.");
+            }
+
+            sw.Stop();
+            EmitToConsole($"GGPK patched in {(int)sw.Elapsed.TotalMilliseconds}ms.");
+        }
+        catch (Exception ex)
         {
-            LibBundle3.Index index = new(GGPKPath);
-            PatchManager manager = new(index, this);
-            int count = manager.Patch();
-            index.Dispose();
-            EmitToConsole($"{count} assets patched.");
+            sw.Stop();
+            EmitToConsole($"ERROR: {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+                EmitToConsole($"  Inner: {ex.InnerException.Message}");
+            EmitToConsole(ex.StackTrace ?? string.Empty);
         }
-
-        sw.Stop();
-        EmitToConsole($"GGPK patched in {(int)sw.Elapsed.TotalMilliseconds}ms.");
     }
 }
