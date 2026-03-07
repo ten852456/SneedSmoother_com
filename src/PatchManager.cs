@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
@@ -180,6 +180,18 @@ public class PatchManager
             }
 
             patchedFiles.Add(path);
+
+            // If we just patched a .ao file, also create an empty .aoc companion
+            // in modifiedassets so the original GGPK .aoc gets overwritten and
+            // no longer causes a "non-virtual and does not have a physical file" error.
+            if (Path.GetExtension(modifiedPath).Equals(".ao", StringComparison.OrdinalIgnoreCase))
+            {
+                string aocPath = Path.ChangeExtension(modifiedPath, ".aoc");
+                if (!File.Exists(aocPath))
+                {
+                    File.WriteAllText(aocPath, string.Empty, Encoding.Unicode);
+                }
+            }
         }
     }
 }
