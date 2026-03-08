@@ -37,5 +37,6 @@
         <CheckBox x:Name="removeDelirium" Content="Remove Delirium Effects" HorizontalAlignment="Left" Margin="10,380,0,0" VerticalAlignment="Top"/>
         <CheckBox x:Name="removeWeather" Content="Remove Weather (Rain, Snow)" HorizontalAlignment="Left" Margin="10,400,0,0" VerticalAlignment="Top"/>
         <CheckBox x:Name="removeBlight" Content="Remove Blight Ground" HorizontalAlignment="Left" Margin="10,420,0,0" VerticalAlignment="Top"/>
+        <CheckBox x:Name="removeHideoutFX" Content="Remove Hideout Decor / FX" HorizontalAlignment="Left" Margin="10,440,0,0" VerticalAlignment="Top"/>
     </Grid>
 </Window>
