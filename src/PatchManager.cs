@@ -122,9 +122,12 @@ public class PatchManager
         bool deliriumEnabled = patches.Any(p => p is DeliriumPatch);
         if (deliriumEnabled && File.Exists(fogAoPath) && index.TryFindNode(fogAocGGPKPath, out _))
         {
-            string fogAoContent = File.ReadAllText(fogAoPath);
+            // Write a minimal stub instead of the full .ao content.
+            // The full content crashes because AnimatedRender was removed in 3.28.
+            // A minimal FmtParent stub gives the engine a valid, parseable .aoc with no components.
+            string fogAocStub = "version 3\r\nextends \"Metadata/FmtParent\"";
             Directory.CreateDirectory(Path.GetDirectoryName(fogAocModifiedPath)!);
-            File.WriteAllText(fogAocModifiedPath, fogAoContent, Encoding.Unicode);
+            File.WriteAllText(fogAocModifiedPath, fogAocStub, Encoding.Unicode);
             window.EmitToConsole("fogAttachment.aoc: patched broken GGPK entry.");
         }
 
