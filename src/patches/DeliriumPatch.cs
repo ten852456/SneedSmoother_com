@@ -15,6 +15,11 @@ public class DeliriumPatch : IPatch
     {
         if (string.IsNullOrEmpty(text)) return null;
 
+        // fogAttachment.ao has a .aoc companion in the GGPK that cannot be
+        // safely replaced. Skip it to avoid "non-virtual and does not have a
+        // physical file" crash in the game engine.
+        if (text.Contains("fogAttachment_ao_pass0.mat")) return null;
+
         if (text.Contains("Metadata/FmtParent"))
         {
             text = "version 2\nextends \"Metadata/FmtParent\"";
