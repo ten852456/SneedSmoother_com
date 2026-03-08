@@ -120,6 +120,21 @@ public class PatchManager
         string fogAocGGPKPath = "metadata/effects/environment/league_affliction/fogAttachment.aoc";
 
         bool deliriumEnabled = patches.Any(p => p is DeliriumPatch);
+
+        // Diagnostic: log TryFindNode result for all case variants of delirium .aoc files.
+        if (deliriumEnabled)
+        {
+            string[] diag = [
+                "metadata/effects/environment/league_affliction/fogAttachment.aoc",
+                "metadata/effects/environment/league_affliction/fogattachment.aoc",
+                "Metadata/Effects/Environment/League_Affliction/fogAttachment.aoc",
+                "metadata/effects/environment/league_affliction/ashes.aoc",
+                "Metadata/Effects/Environment/League_Affliction/ashes.aoc",
+            ];
+            foreach (string d in diag)
+                window.EmitToConsole($"[diag] TryFindNode({d}) = {index.TryFindNode(d, out _)}");
+        }
+
         if (deliriumEnabled && File.Exists(fogAoPath) && index.TryFindNode(fogAocGGPKPath, out _))
         {
             // Write a minimal stub instead of the full .ao content.
