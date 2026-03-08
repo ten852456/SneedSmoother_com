@@ -5,6 +5,9 @@ using System.Reflection;
 using System.Text;
 using System.Windows.Controls;
 
+using LibBundledGGPK3;
+using LibGGPK3.Records;
+
 namespace PoeFixer;
 
 public class PatchManager
@@ -13,6 +16,10 @@ public class PatchManager
 
     // Index ambiguous between steam and normal client.
     public LibBundle3.Index index;
+
+    // Optional: only set when using a .ggpk file (not Steam .bin).
+    // Allows writing to GGPK3 tree entries that are invisible to LibBundle3.Index.
+    public BundledGGPK? ggpk;
 
     // Paths ending with "/".
     public string CachePath { get; set; }
@@ -23,13 +30,36 @@ public class PatchManager
 
     public MainWindow window;
 
-    public PatchManager(LibBundle3.Index index, MainWindow window)
+    public PatchManager(LibBundle3.Index index, MainWindow window, BundledGGPK? ggpk = null)
     {
         CachePath = $"{AppDomain.CurrentDomain.BaseDirectory}extractedassets/";
         ModifiedCachePath = $"{AppDomain.CurrentDomain.BaseDirectory}modifiedassets/";
 
         this.index = index;
         this.window = window;
+        this.ggpk = ggpk;
+    }
+
+    /// <summary>
+    /// Write data directly to a GGPK3 tree file (for files NOT in the bundle index).
+    /// Path segments are split by '/'. Returns true if the file was found and written.
+    /// </summary>
+    public bool WriteGGPK3File(string path, ReadOnlySpan<byte> data)
+    {
+        if (ggpk == null) return false;
+        TreeNode? node = ggpk.Root;
+        foreach (string segment in path.Split('/'))
+        {
+            if (string.IsNullOrEmpty(segment)) continue;
+            node = (node as DirectoryRecord)?[segment];
+            if (node == null) return false;
+        }
+        if (node is FileRecord fileRecord)
+        {
+            fileRecord.Write(data);
+            return true;
+        }
+        return false;
     }
 
     public int RestoreExtractedAssets()
@@ -110,40 +140,26 @@ public class PatchManager
             window.EmitToConsole($"{patch.GetType().Name} patched in {(int)stopWatch.Elapsed.TotalMilliseconds}ms.");
         }
 
-        // fogAttachment.aoc is broken in the 3.28 GGPK (non-virtual with no physical data).
-        // When any delirium .ao file is patched, the game re-validates the whole delirium
-        // chain including fogAttachment.ao → fogAttachment.aoc and crashes.
-        // Fix: write the original fogAttachment.ao content into fogAttachment.aoc in
-        // modifiedassets so LibBundle3 replaces the broken GGPK entry with valid text.
-        string fogAoPath = $"{CachePath}metadata/effects/environment/league_affliction/fogattachment.ao";
-        string fogAocModifiedPath = $"{ModifiedCachePath}metadata/effects/environment/league_affliction/fogattachment.aoc";
-        string fogAocGGPKPath = "metadata/effects/environment/league_affliction/fogAttachment.aoc";
-
         bool deliriumEnabled = patches.Any(p => p is DeliriumPatch);
 
-        // Diagnostic: log TryFindNode result for all case variants of delirium .aoc files.
+        // fogAttachment.aoc is stored directly in the GGPK3 tree (NOT in bundles).
+        // LibBundle3.Index.TryFindNode always returns false for it.
+        // When any delirium .ao is patched, the game preloads fogAttachment.ao
+        // which triggers a strict validation of fogAttachment.aoc — a broken entry
+        // in the GGPK3 tree that has no physical data.
+        // Fix: use BundledGGPK.Root to traverse the GGPK3 tree and write
+        // a minimal valid stub directly to the fogAttachment.aoc FileRecord.
         if (deliriumEnabled)
         {
-            string[] diag = [
-                "metadata/effects/environment/league_affliction/fogAttachment.aoc",
-                "metadata/effects/environment/league_affliction/fogattachment.aoc",
+            byte[] fogAocStub = Encoding.Unicode.GetPreamble()
+                .Concat(Encoding.Unicode.GetBytes("version 3\r\nextends \"Metadata/FmtParent\""))
+                .ToArray();
+            bool written = WriteGGPK3File(
                 "Metadata/Effects/Environment/League_Affliction/fogAttachment.aoc",
-                "metadata/effects/environment/league_affliction/ashes.aoc",
-                "Metadata/Effects/Environment/League_Affliction/ashes.aoc",
-            ];
-            foreach (string d in diag)
-                window.EmitToConsole($"[diag] TryFindNode({d}) = {index.TryFindNode(d, out _)}");
-        }
-
-        if (deliriumEnabled && File.Exists(fogAoPath) && index.TryFindNode(fogAocGGPKPath, out _))
-        {
-            // Write a minimal stub instead of the full .ao content.
-            // The full content crashes because AnimatedRender was removed in 3.28.
-            // A minimal FmtParent stub gives the engine a valid, parseable .aoc with no components.
-            string fogAocStub = "version 3\r\nextends \"Metadata/FmtParent\"";
-            Directory.CreateDirectory(Path.GetDirectoryName(fogAocModifiedPath)!);
-            File.WriteAllText(fogAocModifiedPath, fogAocStub, Encoding.Unicode);
-            window.EmitToConsole("fogAttachment.aoc: patched broken GGPK entry.");
+                fogAocStub);
+            window.EmitToConsole(written
+                ? "fogAttachment.aoc: fixed broken GGPK3 entry."
+                : "fogAttachment.aoc: not found in GGPK3 tree (Steam client or already valid).");
         }
 
         if (File.Exists("patch.zip")) File.Delete("patch.zip");

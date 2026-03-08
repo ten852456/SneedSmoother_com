@@ -108,7 +108,7 @@ public partial class MainWindow : Window
             if (GGPKPath.EndsWith(".ggpk"))
             {
                 BundledGGPK ggpk = new(GGPKPath);
-                PatchManager manager = new(ggpk.Index, this);
+                PatchManager manager = new(ggpk.Index, this, ggpk);
                 int count = manager.Patch();
                 ggpk.Dispose();
                 EmitToConsole($"{count} assets patched.");
