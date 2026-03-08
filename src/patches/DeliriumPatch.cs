@@ -40,7 +40,10 @@ public class DeliriumPatch : IPatch
 
     public bool ShouldPatch(Dictionary<string, bool> bools, Dictionary<string, float> floats)
     {
-        bools.TryGetValue("removeDelirium", out bool enabled);
-        return enabled;
+        // Delirium patch is disabled. The 3.28 GGPK has a broken fogAttachment.aoc 
+        // compiled cache. Patching any .ao file in this directory triggers an engine 
+        // revalidation that crashes when it hits the broken .aoc.
+        // Delirium particles are already handled by ParticlePatch.
+        return false;
     }
 }

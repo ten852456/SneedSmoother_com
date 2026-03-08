@@ -140,27 +140,7 @@ public class PatchManager
             window.EmitToConsole($"{patch.GetType().Name} patched in {(int)stopWatch.Elapsed.TotalMilliseconds}ms.");
         }
 
-        bool deliriumEnabled = patches.Any(p => p is DeliriumPatch);
 
-        // fogAttachment.aoc is stored directly in the GGPK3 tree (NOT in bundles).
-        // LibBundle3.Index.TryFindNode always returns false for it.
-        // When any delirium .ao is patched, the game preloads fogAttachment.ao
-        // which triggers a strict validation of fogAttachment.aoc — a broken entry
-        // in the GGPK3 tree that has no physical data.
-        // Fix: use BundledGGPK.Root to traverse the GGPK3 tree and write
-        // a minimal valid stub directly to the fogAttachment.aoc FileRecord.
-        if (deliriumEnabled)
-        {
-            byte[] fogAocStub = Encoding.Unicode.GetPreamble()
-                .Concat(Encoding.Unicode.GetBytes("version 3\r\nextends \"Metadata/FmtParent\""))
-                .ToArray();
-            bool written = WriteGGPK3File(
-                "Metadata/Effects/Environment/League_Affliction/fogAttachment.aoc",
-                fogAocStub);
-            window.EmitToConsole(written
-                ? "fogAttachment.aoc: fixed broken GGPK3 entry."
-                : "fogAttachment.aoc: not found in GGPK3 tree (Steam client or already valid).");
-        }
 
         if (File.Exists("patch.zip")) File.Delete("patch.zip");
         ZipFile.CreateFromDirectory(ModifiedCachePath, "patch.zip");
