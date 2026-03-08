@@ -145,59 +145,44 @@ public class PatchManager
         // Grab this file from the modified cache if it was modified already.
         if (patchModifiedAsset) path = path.Replace(CachePath, ModifiedCachePath);
 
+        // If this is a .ao file and a corresponding .aoc exists in the GGPK,
+        // skip patching it entirely. The .aoc is a precompiled version of the
+        // old .ao — patching .ao but not .aoc causes an incompatible pair and
+        // a game-level "non-virtual and does not have a physical file" error.
+        if (Path.GetExtension(path).Equals(".ao", StringComparison.OrdinalIgnoreCase))
+        {
+            string ggpkAocPath = path.Replace(patchModifiedAsset ? ModifiedCachePath : CachePath, "")
+                                     .Replace('\\', '/')
+                                     .Replace(".ao", ".aoc");
+            if (index.TryFindNode(ggpkAocPath, out _))
+                return;
+        }
+
         string text = File.ReadAllText(path);
 
         string? modifiedText = patch.PatchFile(text);
         if (modifiedText == null) return;
 
-        // Write to the modifie d cache.
+        // Write to the modified cache.
         if (patchModifiedAsset)
         {
-            // Check if extension is glsl.
             if (Path.GetExtension(path) == ".hlsl")
-            {
                 File.WriteAllText(path, modifiedText, Encoding.ASCII);
-            }
             else
-            {
                 File.WriteAllText(path, modifiedText, Encoding.Unicode);
-            }
         }
         else
         {
             string modifiedPath = path.Replace(CachePath, ModifiedCachePath);
 
-            // Ensure path exists.
             Directory.CreateDirectory(Path.GetDirectoryName(modifiedPath)!);
 
             if (Path.GetExtension(modifiedPath) == ".hlsl")
-            {
                 File.WriteAllText(modifiedPath, modifiedText, Encoding.ASCII);
-            }
             else
-            {
                 File.WriteAllText(modifiedPath, modifiedText, Encoding.Unicode);
-            }
 
             patchedFiles.Add(path);
-
-            // If we just patched a .ao file, also create an empty .aoc companion
-            // in modifiedassets so the original GGPK .aoc gets overwritten and
-            // no longer causes a "non-virtual and does not have a physical file" error.
-            if (Path.GetExtension(modifiedPath).Equals(".ao", StringComparison.OrdinalIgnoreCase))
-            {
-                string aocPath = Path.ChangeExtension(modifiedPath, ".aoc");
-                if (!File.Exists(aocPath))
-                {
-                    // Only create the .aoc companion if the entry actually exists in the GGPK.
-                    // If it doesn't exist, LibBundle3.Replace throws FileNotFoundException.
-                    string ggpkPath = aocPath.Replace(ModifiedCachePath, "").Replace('\\', '/');
-                    if (index.TryFindNode(ggpkPath, out _))
-                    {
-                        File.WriteAllBytes(aocPath, []);
-                    }
-                }
-            }
         }
     }
 }
