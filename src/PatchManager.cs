@@ -110,6 +110,24 @@ public class PatchManager
             window.EmitToConsole($"{patch.GetType().Name} patched in {(int)stopWatch.Elapsed.TotalMilliseconds}ms.");
         }
 
+        // fogAttachment.aoc is broken in the 3.28 GGPK (non-virtual with no physical data).
+        // When any delirium .ao file is patched, the game re-validates the whole delirium
+        // chain including fogAttachment.ao → fogAttachment.aoc and crashes.
+        // Fix: write the original fogAttachment.ao content into fogAttachment.aoc in
+        // modifiedassets so LibBundle3 replaces the broken GGPK entry with valid text.
+        string fogAoPath = $"{CachePath}metadata/effects/environment/league_affliction/fogattachment.ao";
+        string fogAocModifiedPath = $"{ModifiedCachePath}metadata/effects/environment/league_affliction/fogattachment.aoc";
+        string fogAocGGPKPath = "metadata/effects/environment/league_affliction/fogAttachment.aoc";
+
+        bool deliriumEnabled = patches.Any(p => p is DeliriumPatch);
+        if (deliriumEnabled && File.Exists(fogAoPath) && index.TryFindNode(fogAocGGPKPath, out _))
+        {
+            string fogAoContent = File.ReadAllText(fogAoPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(fogAocModifiedPath)!);
+            File.WriteAllText(fogAocModifiedPath, fogAoContent, Encoding.Unicode);
+            window.EmitToConsole("fogAttachment.aoc: patched broken GGPK entry.");
+        }
+
         if (File.Exists("patch.zip")) File.Delete("patch.zip");
         ZipFile.CreateFromDirectory(ModifiedCachePath, "patch.zip");
         ZipArchive archive = ZipFile.OpenRead("patch.zip");
