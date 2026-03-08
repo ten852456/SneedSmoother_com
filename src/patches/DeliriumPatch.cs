@@ -9,41 +9,19 @@ public class DeliriumPatch : IPatch
         ];
 
 
-    public string Extension => "*.ao|*.aoc";
+    public string Extension => "*.fxgraph";
 
     public string? PatchFile(string text)
     {
-        if (string.IsNullOrEmpty(text)) return null;
-
-        // All FmtParent-based .ao files in the delirium folder have .aoc
-        // companions in the GGPK that cannot be safely replaced. Patching
-        // the .ao without matching .aoc causes a game engine crash.
-        if (text.Contains("Metadata/FmtParent")) return null;
-
-        if (text.Contains("default_animation = \"loop\""))
-        {
-            string[] separator = [Environment.NewLine];
-            string[] lines = text.Split(separator, StringSplitOptions.RemoveEmptyEntries);
-            IEnumerable<string> filteredLines = lines.Where(line => !line.Contains("default_animation = \"loop\""));
-            text = string.Join(Environment.NewLine, filteredLines);
-        }
-        else if (text.Contains("BoneGroups"))
-        {
-            string[] separator = [Environment.NewLine];
-            string[] lines = text.Split(separator, StringSplitOptions.RemoveEmptyEntries);
-            IEnumerable<string> filteredLines = lines.Where(line => !line.Contains("default_animation"));
-            text = string.Join(Environment.NewLine, filteredLines);
-        }
-
-        return text;
+        // Replace the fog shader instructions with an empty graph
+        // This renders the fog completely invisible without modifying .ao definitions
+        // (which crash the game if touched due to a broken .aoc cache in the 3.28 GGPK).
+        return "{\n  \"version\": 3,\n  \"nodes\": [],\n  \"links\": []\n}";
     }
 
     public bool ShouldPatch(Dictionary<string, bool> bools, Dictionary<string, float> floats)
     {
-        // Delirium patch is disabled. The 3.28 GGPK has a broken fogAttachment.aoc 
-        // compiled cache. Patching any .ao file in this directory triggers an engine 
-        // revalidation that crashes when it hits the broken .aoc.
-        // Delirium particles are already handled by ParticlePatch.
-        return false;
+        bools.TryGetValue("removeDelirium", out bool enabled);
+        return enabled;
     }
 }
