@@ -15,16 +15,12 @@ public class DeliriumPatch : IPatch
     {
         if (string.IsNullOrEmpty(text)) return null;
 
-        // fogAttachment.ao has a .aoc companion in the GGPK that cannot be
-        // safely replaced. Skip it to avoid "non-virtual and does not have a
-        // physical file" crash in the game engine.
-        if (text.Contains("fogAttachment_ao_pass0.mat")) return null;
+        // All FmtParent-based .ao files in the delirium folder have .aoc
+        // companions in the GGPK that cannot be safely replaced. Patching
+        // the .ao without matching .aoc causes a game engine crash.
+        if (text.Contains("Metadata/FmtParent")) return null;
 
-        if (text.Contains("Metadata/FmtParent"))
-        {
-            text = "version 2\nextends \"Metadata/FmtParent\"";
-        }
-        else if (text.Contains("default_animation = \"loop\""))
+        if (text.Contains("default_animation = \"loop\""))
         {
             string[] separator = [Environment.NewLine];
             string[] lines = text.Split(separator, StringSplitOptions.RemoveEmptyEntries);
@@ -33,8 +29,6 @@ public class DeliriumPatch : IPatch
         }
         else if (text.Contains("BoneGroups"))
         {
-            // Strip default_animation so the particle loop doesn't trigger,
-            // and output a minimal file with empty client block.
             string[] separator = [Environment.NewLine];
             string[] lines = text.Split(separator, StringSplitOptions.RemoveEmptyEntries);
             IEnumerable<string> filteredLines = lines.Where(line => !line.Contains("default_animation"));
